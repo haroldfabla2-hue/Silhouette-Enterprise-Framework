@@ -887,11 +887,59 @@
 **/*.zip
 
 # ==============================================================================
-# PROJECT SPECIFIC
+# PROJECT SPECIFIC - SILHOUETTE ENTERPRISE FRAMEWORK
 # ==============================================================================
 # Add your project-specific ignores here
-# workspace/
-# data/
-# uploads/
-# downloads/
+
+# ==============================================================================
+# EXTERNAL PROJECTS & SYSTEMS (NOT PART OF SILHOUETTE FRAMEWORK)
+# ==============================================================================
+# Browser/Bedrock/Matrix systems
+browser/
+external_api/
+
+# Empty team directories (not part of active development)
+api_gateway/
+business_development_team/
+cloud_services_team/
+communications_team/
+customer_service_team/
+design_creative_team/
+finance_team/
+hr_team/
+legal_team/
+machine_learning_ai_team/
+manufacturing_team/
+marketing_team/
+notifications_communication_team/
+product_management_team/
+quality_assurance_team/
+research_team/
+risk_management_team/
+sales_team/
+security_team/
+strategy_team/
+supply_chain_team/
+support_team/
+testing_team/
+
+# Other systems (MCP, planner, prompt engineer)
+mcp_server/
+planner/
+prompt_engineer/
+
+# Temporary directories and files
+tmp/
+extract/
+
+# User input files (sensitive content)
+user_input_files/
+
+# Environment files with sensitive data
+.env.activation
+.env.dynamic
+config/.env
+
+# Workspace metadata
+workspace.json
 
