@@ -1,0 +1,1211 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configuración Manual de Tiers - Silhouette Enterprise Framework</title>
+    <style>
+        /* Reset y configuración base */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+            padding: 40px 20px;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        /* Mode Selector */
+        .mode-selector {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 40px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .mode-selector h2 {
+            color: #333;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .mode-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .mode-btn {
+            padding: 12px 30px;
+            border: 2px solid #667eea;
+            background: transparent;
+            color: #667eea;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .mode-btn:hover {
+            background: #667eea;
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .mode-btn.active {
+            background: #667eea;
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .mode-btn.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            border-color: #ccc;
+            color: #ccc;
+        }
+
+        .mode-btn.disabled:hover {
+            background: transparent;
+            color: #ccc;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* Status Indicator */
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 15px;
+            font-weight: 600;
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.manual {
+            background: #28a745;
+        }
+
+        .status-dot.auto {
+            background: #ffc107;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        /* Tier Cards Grid */
+        .tiers-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .tier-card {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+        }
+
+        .tier-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+        }
+
+        .tier-card.active {
+            border: 3px solid #667eea;
+            transform: translateY(-5px);
+        }
+
+        .tier-card.recommended {
+            border: 3px solid #28a745;
+        }
+
+        .tier-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 5px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+        }
+
+        .tier-header {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .tier-name {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .tier-price {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .tier-period {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .tier-description {
+            text-align: center;
+            color: #666;
+            margin-bottom: 25px;
+            font-style: italic;
+        }
+
+        .tier-features {
+            margin-bottom: 25px;
+        }
+
+        .feature-list {
+            list-style: none;
+        }
+
+        .feature-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+            padding: 5px 0;
+        }
+
+        .feature-icon {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .feature-icon.included {
+            background: #28a745;
+        }
+
+        .feature-icon.excluded {
+            background: #dc3545;
+        }
+
+        .feature-text {
+            font-size: 0.9rem;
+            color: #333;
+        }
+
+        .tier-limits {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 25px;
+        }
+
+        .limit-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+        }
+
+        .limit-label {
+            color: #666;
+        }
+
+        .limit-value {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .select-btn {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            background: #667eea;
+            color: white;
+            font-weight: 600;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .select-btn:hover {
+            background: #5a67d8;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .select-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .select-btn.active {
+            background: #28a745;
+        }
+
+        .select-btn.recommended {
+            background: #28a745;
+            animation: glow 2s infinite;
+        }
+
+        @keyframes glow {
+            0%, 100% { box-shadow: 0 5px 15px rgba(40, 167, 69, 0.4); }
+            50% { box-shadow: 0 5px 25px rgba(40, 167, 69, 0.6); }
+        }
+
+        /* Comparison Table */
+        .comparison-section {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            margin-bottom: 40px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .comparison-title {
+            text-align: center;
+            font-size: 2rem;
+            margin-bottom: 30px;
+            color: #333;
+        }
+
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+
+        .comparison-table th,
+        .comparison-table td {
+            padding: 12px 15px;
+            text-align: center;
+            border-bottom: 1px solid #eee;
+        }
+
+        .comparison-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .comparison-table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .feature-name {
+            text-align: left;
+            font-weight: 500;
+        }
+
+        .check-icon {
+            color: #28a745;
+            font-size: 1.2rem;
+        }
+
+        .cross-icon {
+            color: #dc3545;
+            font-size: 1.2rem;
+        }
+
+        /* Notifications */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            max-width: 350px;
+            z-index: 1000;
+            transform: translateX(400px);
+            transition: all 0.3s ease;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification.success {
+            border-left: 5px solid #28a745;
+        }
+
+        .notification.error {
+            border-left: 5px solid #dc3545;
+        }
+
+        .notification.warning {
+            border-left: 5px solid #ffc107;
+        }
+
+        .notification-header {
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .notification-message {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .header p {
+                font-size: 1rem;
+            }
+
+            .tiers-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+
+            .mode-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .mode-btn {
+                width: 200px;
+            }
+
+            .comparison-table {
+                font-size: 0.8rem;
+            }
+
+            .comparison-table th,
+            .comparison-table td {
+                padding: 8px 10px;
+            }
+
+            .notification {
+                max-width: calc(100vw - 40px);
+                right: 10px;
+                left: 10px;
+                transform: translateY(-100px);
+            }
+
+            .notification.show {
+                transform: translateY(0);
+            }
+        }
+
+        @media (max-width: 480px) {
+            .tier-card {
+                padding: 20px;
+            }
+
+            .comparison-section {
+                padding: 20px;
+            }
+
+            .tier-name {
+                font-size: 1.5rem;
+            }
+
+            .tier-price {
+                font-size: 2rem;
+            }
+        }
+
+        /* Loading States */
+        .loading {
+            opacity: 0.7;
+            pointer-events: none;
+        }
+
+        .loading::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #667eea;
+            border-top: 2px solid transparent;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            transform: translate(-50%, -50%);
+        }
+
+        @keyframes spin {
+            0% { transform: translate(-50%, -50%) rotate(0deg); }
+            100% { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            color: white;
+            padding: 40px 20px;
+            margin-top: 60px;
+        }
+
+        .footer p {
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>🚀 Silhouette Enterprise Framework</h1>
+            <p>Configuración Manual de Tiers - Control Total del Rendimiento</p>
+        </div>
+
+        <!-- Mode Selector -->
+        <div class="mode-selector">
+            <h2>🔧 Seleccionar Modo de Operación</h2>
+            <div class="mode-buttons">
+                <button class="mode-btn active" id="manualModeBtn" onclick="setMode('manual')">
+                    📊 Modo Manual
+                </button>
+                <button class="mode-btn" id="autoModeBtn" onclick="setMode('auto')">
+                    ⚡ Modo Automático
+                </button>
+            </div>
+            <div class="status-indicator">
+                <div class="status-dot manual" id="statusDot"></div>
+                <span id="statusText">Modo Manual Activo</span>
+            </div>
+        </div>
+
+        <!-- Tier Cards -->
+        <div class="tiers-grid" id="tiersGrid">
+            <!-- Free Tier -->
+            <div class="tier-card" data-tier="free">
+                <div class="tier-header">
+                    <div class="tier-name">Free Tier</div>
+                    <div class="tier-price">$0</div>
+                    <div class="tier-period">por mes</div>
+                </div>
+                <div class="tier-description">
+                    Perfecto para comenzar con funcionalidad básica
+                </div>
+                <div class="tier-features">
+                    <ul class="feature-list">
+                        <li class="feature-item">
+                            <div class="feature-icon included">✓</div>
+                            <span class="feature-text">Auto-scaling básico</span>
+                        </li>
+                        <li class="feature-item">
+                            <div class="feature-icon included">✓</div>
+                            <span class="feature-text">Soporte de comunidad</span>
+                        </li>
+                        <li class="feature-item">
+                            <div class="feature-icon included">✓</div>
+                            <span class="feature-text">Retención 7 días</span>
+                        </li>
+                        <li class="feature-item">
+                            <div class="feature-icon excluded">✗</div>
+                            <span class="feature-text">API avanzada</span>
+                        </li>
+                        <li class="feature-item">
+                            <div class="feature-icon excluded">✗</div>
+                            <span class="feature-text">Soporte prioritario</span>
+                        </li>
+                    </ul>
+                </div>
+                <div class="tier-limits">
+                    <div class="limit-item">
+                        <span class="limit-label">Tokens máximos:</span>
+                        <span class="limit-value">10,000</span>
+                    </div>
+                    <div class="limit-item">
+                        <span class="limit-label">Equipos:</span>
+                        <span class="limit-value">5</span>
+                    </div>
+                    <div class="limit-item">
+                        <span class="limit-label">Solicitudes/día:</span>
+                        <span class="limit-value">1,000</span>
+                    </div>
+                </div>
+                <button class="select-btn" onclick="selectTier('free')">
+                    Seleccionar Free
+                </button>
+            </div>
+
+            <!-- PYME Tier -->
+            <div class="tier-card recommended" data-tier="pyme">
+                <div class="tier-header">
+                    <div class="tier-name">PYME Tier</div>
+                    <div class="tier-price">$250</div>
+                    <div class="tier-period">por mes</div>
+                </div>
+                <div class="tier-description">
+                    Diseñado para pequeñas y medianas empresas
+                </div>
+                <div class="tier-features">
+                    <ul class="feature-list">
+                        <li class="feature-item">
+                            <div class="feature-icon included">✓</div>
+                            <span class="feature-text">Auto-scaling mejorado</span>
+                        </li>
+                        <li class="feature-item">
+                            <div class="feature-icon included">✓</div>
+                            <span class="feature-text">Acceso API completo</span>
+                        </li>
+                        <li class="feature-item">
+                            <div class="feature-icon included">✓</div>
+                            <span class="feature-text">Soporte por email</span>
+                        </li>
+                        <li class="feature-item">
+                            <div class="feature-icon included">✓</div>
+                            <span class="feature-text">Integraciones webhook</span>
+                        </li>
+                        <li class="feature-item">
+                            <div class="feature-icon excluded">✗</div>
+                            <span class="feature-text">Escalado predictivo</span>
+                        </li>
+                    </ul>
+                </div>
+                <div class="tier-limits">
+                    <div class="limit-item">
+                        <span class="limit-label">Tokens máximos:</span>
+                        <span class="limit-value">100,000</span>
+                    </div>
+                    <div class="limit-item">
+                        <span class="limit-label">Equipos:</span>
+                        <span class="limit-value">25</span>
+                    </div>
+                    <div class="limit-item">
+                        <span class="limit-label">Solicitudes/día:</span>
+                        <span class="limit-value">10,000</span>
+                    </div>
+                </div>
+                <button class="select-btn recommended" onclick="selectTier('pyme')">
+                    Seleccionar PYME
+                </button>
+            </div>
+
+            <!-- Mediana Tier -->
+            <div class="tier-card" data-tier="mediana">
+                <div class="tier-header">
+                    <div class="tier-name">Mediana Tier</div>
+                    <div class="tier-price">$1,200</div>
+                    <div class="tier-period">por mes</div>
+                </div>
+                <div class="tier-description">
+                    Solución de mercado medio con características avanzadas
+                </div>
+                <div class="tier-features">
+                    <ul class="feature-list">
+                        <li class="feature-item">
+                            <div class="feature-icon included">✓</div>
+                            <span class="feature-text">Escalado predictivo</span>
+                        </li>
+                        <li class="feature-item">
+                            <div class="feature-icon included">✓</div>
+                            <span class="feature-text">Analíticas avanzadas</span>
+                        </li>
+                        <li class="feature-item">
+                            <div class="feature-icon included">✓</div>
+                            <span class="feature-text">Dashboards en tiempo real</span>
+                        </li>
+                        <li class="feature-item">
+                            <div class="feature-icon included">✓</div>
+                            <span class="feature-text">Soporte telefónico</span>
+                        </li>
+                        <li class="feature-item">
+                            <div class="feature-icon included">✓</div>
+                            <span class="feature-text">Cifrado avanzado</span>
+                        </li>
+                    </ul>
+                </div>
+                <div class="tier-limits">
+                    <div class="limit-item">
+                        <span class="limit-label">Tokens máximos:</span>
+                        <span class="limit-value">500,000</span>
+                    </div>
+                    <div class="limit-item">
+                        <span class="limit-label">Equipos:</span>
+                        <span class="limit-value">100</span>
+                    </div>
+                    <div class="limit-item">
+                        <span class="limit-label">Solicitudes/día:</span>
+                        <span class="limit-value">50,000</span>
+                    </div>
+                </div>
+                <button class="select-btn" onclick="selectTier('mediana')">
+                    Seleccionar Mediana
+                </button>
+            </div>
+
+            <!-- Enterprise Tier -->
+            <div class="tier-card" data-tier="enterprise">
+                <div class="tier-header">
+                    <div class="tier-name">Enterprise Tier</div>
+                    <div class="tier-price">$3,500</div>
+                    <div class="tier-period">por mes</div>
+                </div>
+                <div class="tier-description">
+                    Solución empresarial completa con capacidades máximas
+                </div>
+                <div class="tier-features">
+                    <ul class="feature-list">
+                        <li class="feature-item">
+                            <div class="feature-icon included">✓</div>
+                            <span class="feature-text">Escalado ilimitado</span>
+                        </li>
+                        <li class="feature-item">
+                            <div class="feature-icon included">✓</div>
+                            <span class="feature-text">Algoritmos personalizados</span>
+                        </li>
+                        <li class="feature-item">
+                            <div class="feature-icon included">✓</div>
+                            <span class="feature-text">Soporte 24/7 dedicado</span>
+                        </li>
+                        <li class="feature-item">
+                            <div class="feature-icon included">✓</div>
+                            <span class="feature-text">Multi-región</span>
+                        </li>
+                        <li class="feature-item">
+                            <div class="feature-icon included">✓</div>
+                            <span class="feature-text">White-label</span>
+                        </li>
+                    </ul>
+                </div>
+                <div class="tier-limits">
+                    <div class="limit-item">
+                        <span class="limit-label">Tokens máximos:</span>
+                        <span class="limit-value">2,000,000</span>
+                    </div>
+                    <div class="limit-item">
+                        <span class="limit-label">Equipos:</span>
+                        <span class="limit-value">500</span>
+                    </div>
+                    <div class="limit-item">
+                        <span class="limit-label">Solicitudes/día:</span>
+                        <span class="limit-value">200,000</span>
+                    </div>
+                </div>
+                <button class="select-btn" onclick="selectTier('enterprise')">
+                    Seleccionar Enterprise
+                </button>
+            </div>
+        </div>
+
+        <!-- Comparison Table -->
+        <div class="comparison-section">
+            <h2 class="comparison-title">📋 Comparación Detallada de Tiers</h2>
+            <table class="comparison-table">
+                <thead>
+                    <tr>
+                        <th class="feature-name">Característica</th>
+                        <th>Free</th>
+                        <th>PYME</th>
+                        <th>Mediana</th>
+                        <th>Enterprise</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="feature-name">Auto-scaling</td>
+                        <td><span class="check-icon">✓</span></td>
+                        <td><span class="check-icon">✓</span></td>
+                        <td><span class="check-icon">✓</span></td>
+                        <td><span class="check-icon">✓</span></td>
+                    </tr>
+                    <tr>
+                        <td class="feature-name">Escalado predictivo</td>
+                        <td><span class="cross-icon">✗</span></td>
+                        <td><span class="cross-icon">✗</span></td>
+                        <td><span class="check-icon">✓</span></td>
+                        <td><span class="check-icon">✓</span></td>
+                    </tr>
+                    <tr>
+                        <td class="feature-name">API completa</td>
+                        <td><span class="cross-icon">✗</span></td>
+                        <td><span class="check-icon">✓</span></td>
+                        <td><span class="check-icon">✓</span></td>
+                        <td><span class="check-icon">✓</span></td>
+                    </tr>
+                    <tr>
+                        <td class="feature-name">Analíticas avanzadas</td>
+                        <td><span class="cross-icon">✗</span></td>
+                        <td><span class="cross-icon">✗</span></td>
+                        <td><span class="check-icon">✓</span></td>
+                        <td><span class="check-icon">✓</span></td>
+                    </tr>
+                    <tr>
+                        <td class="feature-name">Dashboards tiempo real</td>
+                        <td><span class="cross-icon">✗</span></td>
+                        <td><span class="cross-icon">✗</span></td>
+                        <td><span class="check-icon">✓</span></td>
+                        <td><span class="check-icon">✓</span></td>
+                    </tr>
+                    <tr>
+                        <td class="feature-name">Soporte prioritario</td>
+                        <td><span class="cross-icon">✗</span></td>
+                        <td><span class="check-icon">✓</span></td>
+                        <td><span class="check-icon">✓</span></td>
+                        <td><span class="check-icon">✓</span></td>
+                    </tr>
+                    <tr>
+                        <td class="feature-name">Multi-región</td>
+                        <td><span class="cross-icon">✗</span></td>
+                        <td><span class="cross-icon">✗</span></td>
+                        <td><span class="cross-icon">✗</span></td>
+                        <td><span class="check-icon">✓</span></td>
+                    </tr>
+                    <tr>
+                        <td class="feature-name">White-label</td>
+                        <td><span class="cross-icon">✗</span></td>
+                        <td><span class="cross-icon">✗</span></td>
+                        <td><span class="cross-icon">✗</span></td>
+                        <td><span class="check-icon">✓</span></td>
+                    </tr>
+                    <tr>
+                        <td class="feature-name">Retención datos</td>
+                        <td>7 días</td>
+                        <td>30 días</td>
+                        <td>90 días</td>
+                        <td>Ilimitado</td>
+                    </tr>
+                    <tr>
+                        <td class="feature-name">Equipos máximos</td>
+                        <td>5</td>
+                        <td>25</td>
+                        <td>100</td>
+                        <td>500</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p>© 2025 Silhouette Enterprise Framework V4.0 - Desarrollado por MiniMax Agent</p>
+        </div>
+    </div>
+
+    <!-- Notification Container -->
+    <div class="notification" id="notification">
+        <div class="notification-header" id="notificationHeader"></div>
+        <div class="notification-message" id="notificationMessage"></div>
+    </div>
+
+    <script>
+        // Global variables
+        let currentMode = 'manual';
+        let currentTier = 'free';
+        let frameworkConfig = null;
+
+        // Load framework configuration
+        async function loadFrameworkConfig() {
+            try {
+                // In a real implementation, this would load from the framework config
+                frameworkConfig = {
+                    tiers: {
+                        free: { maxTokens: 10000, cost: 0, name: 'Free Tier' },
+                        pyme: { maxTokens: 100000, cost: 250, name: 'PYME Tier' },
+                        mediana: { maxTokens: 500000, cost: 1200, name: 'Mediana Tier' },
+                        enterprise: { maxTokens: 2000000, cost: 3500, name: 'Enterprise Tier' }
+                    }
+                };
+                console.log('✅ Framework configuration loaded');
+            } catch (error) {
+                console.error('❌ Failed to load framework configuration:', error);
+                showNotification('error', 'Error de Configuración', 'No se pudo cargar la configuración del framework');
+            }
+        }
+
+        // Set scaling mode (manual or auto)
+        async function setMode(mode) {
+            if (mode === currentMode) {
+                return;
+            }
+
+            try {
+                // Disable buttons during operation
+                document.querySelectorAll('.mode-btn').forEach(btn => btn.disabled = true);
+                
+                // Show loading state
+                document.getElementById('tiersGrid').classList.add('loading');
+
+                // Update current mode
+                currentMode = mode;
+
+                // Update UI
+                updateModeUI(mode);
+
+                // Simulate API call to framework controller
+                await new Promise(resolve => setTimeout(resolve, 1000));
+
+                showNotification('success', 'Modo Cambiado', `Modo ${mode === 'manual' ? 'Manual' : 'Automático'} activado correctamente`);
+
+                console.log(`🔄 Scaling mode changed to: ${mode}`);
+
+            } catch (error) {
+                console.error('❌ Mode change failed:', error);
+                showNotification('error', 'Error de Modo', 'No se pudo cambiar el modo de operación');
+            } finally {
+                // Re-enable buttons
+                document.querySelectorAll('.mode-btn').forEach(btn => btn.disabled = false);
+                document.getElementById('tiersGrid').classList.remove('loading');
+            }
+        }
+
+        // Update mode UI
+        function updateModeUI(mode) {
+            // Update button states
+            const manualBtn = document.getElementById('manualModeBtn');
+            const autoBtn = document.getElementById('autoModeBtn');
+            const statusDot = document.getElementById('statusDot');
+            const statusText = document.getElementById('statusText');
+
+            // Reset button classes
+            manualBtn.classList.remove('active');
+            autoBtn.classList.remove('active');
+
+            // Set active button
+            if (mode === 'manual') {
+                manualBtn.classList.add('active');
+                statusDot.className = 'status-dot manual';
+                statusText.textContent = 'Modo Manual Activo';
+                enableTierSelection(true);
+            } else {
+                autoBtn.classList.add('active');
+                statusDot.className = 'status-dot auto';
+                statusText.textContent = 'Modo Automático Activo';
+                enableTierSelection(false);
+            }
+
+            // Update tier selection buttons
+            updateTierButtonStates();
+        }
+
+        // Enable or disable tier selection
+        function enableTierSelection(enabled) {
+            const tierCards = document.querySelectorAll('.tier-card');
+            const selectBtns = document.querySelectorAll('.select-btn');
+
+            if (enabled) {
+                tierCards.forEach(card => card.style.cursor = 'pointer');
+                selectBtns.forEach(btn => btn.disabled = false);
+            } else {
+                tierCards.forEach(card => card.style.cursor = 'default');
+                selectBtns.forEach(btn => btn.disabled = true);
+            }
+        }
+
+        // Update tier button states based on mode
+        function updateTierButtonStates() {
+            const selectBtns = document.querySelectorAll('.select-btn');
+            
+            selectBtns.forEach(btn => {
+                if (currentMode === 'auto') {
+                    btn.style.opacity = '0.5';
+                    btn.style.cursor = 'not-allowed';
+                } else {
+                    btn.style.opacity = '1';
+                    btn.style.cursor = 'pointer';
+                }
+            });
+        }
+
+        // Select a tier manually
+        async function selectTier(tierName) {
+            if (currentMode !== 'manual') {
+                showNotification('warning', 'Modo Incorrecto', 'La selección manual solo está disponible en modo manual');
+                return;
+            }
+
+            if (tierName === currentTier) {
+                showNotification('info', 'Tier Actual', `Ya estás usando el tier ${tierName}`);
+                return;
+            }
+
+            try {
+                // Disable all buttons during operation
+                document.querySelectorAll('.select-btn, .mode-btn').forEach(btn => btn.disabled = true);
+                document.getElementById('tiersGrid').classList.add('loading');
+
+                // Update current tier
+                const oldTier = currentTier;
+                currentTier = tierName;
+
+                // Update UI
+                updateTierCardStates(tierName);
+
+                // Simulate API call to framework controller
+                await new Promise(resolve => setTimeout(resolve, 1500));
+
+                showNotification('success', 'Tier Cambiado', `${oldTier} → ${tierName} (Modo Manual)`);
+
+                console.log(`🎯 Manual tier selection: ${oldTier} → ${tierName}`);
+
+            } catch (error) {
+                console.error('❌ Tier selection failed:', error);
+                showNotification('error', 'Error de Selección', 'No se pudo cambiar el tier');
+            } finally {
+                // Re-enable buttons
+                document.querySelectorAll('.select-btn, .mode-btn').forEach(btn => btn.disabled = false);
+                document.getElementById('tiersGrid').classList.remove('loading');
+            }
+        }
+
+        // Update tier card states
+        function updateTierCardStates(selectedTier) {
+            const tierCards = document.querySelectorAll('.tier-card');
+            const selectBtns = document.querySelectorAll('.select-btn');
+
+            tierCards.forEach(card => {
+                const tier = card.getAttribute('data-tier');
+                if (tier === selectedTier) {
+                    card.classList.add('active');
+                } else {
+                    card.classList.remove('active');
+                }
+            });
+
+            selectBtns.forEach((btn, index) => {
+                const tier = Object.keys(frameworkConfig.tiers)[index];
+                if (tier === selectedTier) {
+                    btn.textContent = 'Tier Actual';
+                    btn.classList.add('active');
+                } else {
+                    btn.textContent = `Seleccionar ${frameworkConfig.tiers[tier].name}`;
+                    btn.classList.remove('active');
+                }
+            });
+        }
+
+        // Show notification
+        function showNotification(type, header, message) {
+            const notification = document.getElementById('notification');
+            const notificationHeader = document.getElementById('notificationHeader');
+            const notificationMessage = document.getElementById('notificationMessage');
+
+            // Set notification content
+            notificationHeader.textContent = header;
+            notificationMessage.textContent = message;
+
+            // Set notification type
+            notification.className = `notification ${type}`;
+
+            // Show notification
+            notification.classList.add('show');
+
+            // Auto hide after 5 seconds
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 5000);
+        }
+
+        // Get current framework status
+        async function getFrameworkStatus() {
+            try {
+                // In a real implementation, this would call the framework controller API
+                const status = {
+                    mode: currentMode,
+                    activeTier: currentTier,
+                    timestamp: new Date().toISOString(),
+                    frameworkVersion: '4.0.0'
+                };
+
+                console.log('📊 Current framework status:', status);
+                return status;
+
+            } catch (error) {
+                console.error('❌ Failed to get framework status:', error);
+                throw error;
+            }
+        }
+
+        // Initialize the application
+        function initializeApp() {
+            console.log('🚀 Initializing Silhouette Manual Tier Configuration...');
+
+            // Load framework configuration
+            loadFrameworkConfig();
+
+            // Set initial states
+            updateModeUI(currentMode);
+            updateTierCardStates(currentTier);
+
+            // Add click handlers to tier cards
+            document.querySelectorAll('.tier-card').forEach(card => {
+                card.addEventListener('click', (e) => {
+                    if (e.target.classList.contains('select-btn')) {
+                        return; // Button will handle the click
+                    }
+                    
+                    const tier = card.getAttribute('data-tier');
+                    if (currentMode === 'manual') {
+                        selectTier(tier);
+                    } else {
+                        showNotification('warning', 'Modo Automático', 'En modo automático, el tier se selecciona automáticamente');
+                    }
+                });
+            });
+
+            console.log('✅ Application initialized successfully');
+        }
+
+        // Add smooth scrolling to cards
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeApp();
+
+            // Add intersection observer for card animations
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.style.opacity = '1';
+                        entry.target.style.transform = 'translateY(0)';
+                    }
+                });
+            });
+
+            // Observe all tier cards for animation
+            document.querySelectorAll('.tier-card').forEach(card => {
+                card.style.opacity = '0';
+                card.style.transform = 'translateY(30px)';
+                card.style.transition = 'all 0.6s ease';
+                observer.observe(card);
+            });
+        });
+
+        // Add keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey || e.metaKey) {
+                switch (e.key) {
+                    case '1':
+                        e.preventDefault();
+                        selectTier('free');
+                        break;
+                    case '2':
+                        e.preventDefault();
+                        selectTier('pyme');
+                        break;
+                    case '3':
+                        e.preventDefault();
+                        selectTier('mediana');
+                        break;
+                    case '4':
+                        e.preventDefault();
+                        selectTier('enterprise');
+                        break;
+                    case 'm':
+                        e.preventDefault();
+                        setMode('manual');
+                        break;
+                    case 'a':
+                        e.preventDefault();
+                        setMode('auto');
+                        break;
+                }
+            }
+        });
+
+        // Add help tooltip
+        document.addEventListener('DOMContentLoaded', () => {
+            const helpText = 'Usa Ctrl+1-4 para cambiar tiers rápidamente, Ctrl+M para modo manual, Ctrl+A para modo automático';
+            
+            // Create help indicator
+            const helpIndicator = document.createElement('div');
+            helpIndicator.style.cssText = `
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                background: rgba(0,0,0,0.7);
+                color: white;
+                padding: 8px 12px;
+                border-radius: 6px;
+                font-size: 0.8rem;
+                cursor: pointer;
+                z-index: 1000;
+            `;
+            helpIndicator.textContent = '⌨️ Atajos de teclado';
+            helpIndicator.title = helpText;
+            
+            document.body.appendChild(helpIndicator);
+
+            // Hide help after 10 seconds
+            setTimeout(() => {
+                helpIndicator.style.opacity = '0.5';
+            }, 10000);
+        });
+
+        // Export functions for testing
+        if (typeof module !== 'undefined' && module.exports) {
+            module.exports = {
+                setMode,
+                selectTier,
+                getFrameworkStatus,
+                showNotification
+            };
+        }
+    </script>
+</body>
+</html>

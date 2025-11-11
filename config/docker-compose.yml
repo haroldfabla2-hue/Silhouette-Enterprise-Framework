@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  framework:
+    build: .
+    ports:
+      - "3000:3000"
+    env_file:
+      - config/.env
+    volumes:
+      - ./logs:/app/logs
+      - ./backups:/app/backups
+    depends_on:
+      - postgres
+      - redis
+    environment:
+      - NODE_ENV=production
+      - FRAMEWORK_MODE=auto-scalable
+
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: silhouette
+      POSTGRES_PASSWORD: silhouette2024
+      POSTGRES_DB: silhouette_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --requirepass silhouette2024
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - framework
+
+volumes:
+  postgres_data:
+  redis_data:
