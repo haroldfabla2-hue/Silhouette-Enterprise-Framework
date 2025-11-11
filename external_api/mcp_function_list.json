@@ -1,1 +1,315 @@
-[]
+[
+  {
+    "name": "twitter_search_tweets",
+    "origin_name": "search_tweets",
+    "parameters": [
+      {"name": "query", "type": "str", "description": "Search query"},
+      {"name": "limit", "type": "int", "description": "Results limit", "default": 10},
+      {"name": "lang", "type": "str", "description": "Language filter"},
+      {"name": "min_retweets", "type": "int", "description": "Minimum retweets"},
+      {"name": "min_likes", "type": "int", "description": "Minimum likes"}
+    ],
+    "kind": "data_source",
+    "description": "Search for tweets by query"
+  },
+  {
+    "name": "twitter_get_user_info",
+    "origin_name": "get_user_info",
+    "parameters": [
+      {"name": "username", "type": "str", "description": "Username"},
+      {"name": "user_id", "type": "str", "description": "User ID"}
+    ],
+    "kind": "data_source",
+    "description": "Get user profile information"
+  },
+  {
+    "name": "twitter_get_user_tweets",
+    "origin_name": "get_user_tweets",
+    "parameters": [
+      {"name": "username", "type": "str", "description": "Username"},
+      {"name": "limit", "type": "int", "description": "Tweets limit", "default": 20},
+      {"name": "include_pinned", "type": "bool", "description": "Include pinned tweets"},
+      {"name": "include_replies", "type": "bool", "description": "Include replies"}
+    ],
+    "kind": "data_source",
+    "description": "Get user tweets list"
+  },
+  {
+    "name": "yahoo_get_stock_quote",
+    "origin_name": "get_stock_quote",
+    "parameters": [
+      {"name": "symbol", "type": "str", "description": "Stock symbol"},
+      {"name": "region", "type": "str", "description": "Market region"}
+    ],
+    "kind": "data_source",
+    "description": "Get real-time stock quotes"
+  },
+  {
+    "name": "yahoo_get_historical_data",
+    "origin_name": "get_historical_data",
+    "parameters": [
+      {"name": "symbol", "type": "str", "description": "Stock symbol"},
+      {"name": "period", "type": "str", "description": "Time period"},
+      {"name": "interval", "type": "str", "description": "Data interval"}
+    ],
+    "kind": "data_source",
+    "description": "Get historical stock data"
+  },
+  {
+    "name": "yahoo_search_symbols",
+    "origin_name": "search_symbols",
+    "parameters": [
+      {"name": "query", "type": "str", "description": "Symbol search query"},
+      {"name": "limit", "type": "int", "description": "Results limit"}
+    ],
+    "kind": "data_source",
+    "description": "Search for stock symbols"
+  },
+  {
+    "name": "yahoo_get_market_summary",
+    "origin_name": "get_market_summary",
+    "parameters": [
+      {"name": "region", "type": "str", "description": "Market region"}
+    ],
+    "kind": "data_source",
+    "description": "Get market summary"
+  },
+  {
+    "name": "yahoo_get_financial_metrics",
+    "origin_name": "get_financial_metrics",
+    "parameters": [
+      {"name": "symbol", "type": "str", "description": "Stock symbol"}
+    ],
+    "kind": "data_source",
+    "description": "Get company financial metrics"
+  },
+  {
+    "name": "yahoo_get_crypto_data",
+    "origin_name": "get_crypto_data",
+    "parameters": [
+      {"name": "symbol", "type": "str", "description": "Cryptocurrency symbol"},
+      {"name": "period", "type": "str", "description": "Time period"}
+    ],
+    "kind": "data_source",
+    "description": "Get cryptocurrency data"
+  },
+  {
+    "name": "yahoo_get_forex_rates",
+    "origin_name": "get_forex_rates",
+    "parameters": [
+      {"name": "currencies", "type": "list", "description": "Currency pairs"}
+    ],
+    "kind": "data_source",
+    "description": "Get foreign exchange rates"
+  },
+  {
+    "name": "booking_search_hotels",
+    "origin_name": "search_hotels",
+    "parameters": [
+      {"name": "destination", "type": "str", "description": "Destination"},
+      {"name": "checkin", "type": "str", "description": "Check-in date"},
+      {"name": "checkout", "type": "str", "description": "Check-out date"},
+      {"name": "guests", "type": "int", "description": "Number of guests"},
+      {"name": "rooms", "type": "int", "description": "Number of rooms"}
+    ],
+    "kind": "data_source",
+    "description": "Search for hotels"
+  },
+  {
+    "name": "booking_get_hotel_details",
+    "origin_name": "get_hotel_details",
+    "parameters": [
+      {"name": "hotel_id", "type": "str", "description": "Hotel ID"}
+    ],
+    "kind": "data_source",
+    "description": "Get detailed hotel information"
+  },
+  {
+    "name": "booking_check_availability",
+    "origin_name": "check_availability",
+    "parameters": [
+      {"name": "hotel_id", "type": "str", "description": "Hotel ID"},
+      {"name": "checkin", "type": "str", "description": "Check-in date"},
+      {"name": "checkout", "type": "str", "description": "Check-out date"},
+      {"name": "guests", "type": "int", "description": "Number of guests"}
+    ],
+    "kind": "data_source",
+    "description": "Check room availability"
+  },
+  {
+    "name": "tripadvisor_search_locations",
+    "origin_name": "search_locations",
+    "parameters": [
+      {"name": "query", "type": "str", "description": "Location query"},
+      {"name": "type", "type": "str", "description": "Location type"}
+    ],
+    "kind": "data_source",
+    "description": "Search for travel locations"
+  },
+  {
+    "name": "tripadvisor_get_hotel_details",
+    "origin_name": "get_hotel_details",
+    "parameters": [
+      {"name": "location_id", "type": "str", "description": "Location ID"}
+    ],
+    "kind": "data_source",
+    "description": "Get detailed hotel information"
+  },
+  {
+    "name": "tripadvisor_search_attractions",
+    "origin_name": "search_attractions",
+    "parameters": [
+      {"name": "location", "type": "str", "description": "Location"},
+      {"name": "category", "type": "str", "description": "Attraction category"}
+    ],
+    "kind": "data_source",
+    "description": "Search for tourist attractions"
+  },
+  {
+    "name": "pinterest_search_pins",
+    "origin_name": "search_pins",
+    "parameters": [
+      {"name": "query", "type": "str", "description": "Pin search query"},
+      {"name": "limit", "type": "int", "description": "Results limit"}
+    ],
+    "kind": "data_source",
+    "description": "Search for pins"
+  },
+  {
+    "name": "pinterest_get_board_info",
+    "origin_name": "get_board_info",
+    "parameters": [
+      {"name": "board_id", "type": "str", "description": "Board ID"}
+    ],
+    "kind": "data_source",
+    "description": "Get board information"
+  },
+  {
+    "name": "pinterest_search_boards",
+    "origin_name": "search_boards",
+    "parameters": [
+      {"name": "query", "type": "str", "description": "Board search query"}
+    ],
+    "kind": "data_source",
+    "description": "Search for boards"
+  },
+  {
+    "name": "metal_get_gold_prices",
+    "origin_name": "get_gold_prices",
+    "parameters": [
+      {"name": "currency", "type": "str", "description": "Currency"},
+      {"name": "unit", "type": "str", "description": "Price unit"}
+    ],
+    "kind": "data_source",
+    "description": "Get gold prices"
+  },
+  {
+    "name": "metal_get_silver_prices",
+    "origin_name": "get_silver_prices",
+    "parameters": [
+      {"name": "currency", "type": "str", "description": "Currency"}
+    ],
+    "kind": "data_source",
+    "description": "Get silver prices"
+  },
+  {
+    "name": "metal_get_historical_data",
+    "origin_name": "get_historical_data",
+    "parameters": [
+      {"name": "metal", "type": "str", "description": "Metal type"},
+      {"name": "period", "type": "str", "description": "Time period"}
+    ],
+    "kind": "data_source",
+    "description": "Get historical metal data"
+  },
+  {
+    "name": "commodities_get_prices",
+    "origin_name": "get_prices",
+    "parameters": [
+      {"name": "commodity", "type": "str", "description": "Commodity type"},
+      {"name": "market", "type": "str", "description": "Market"}
+    ],
+    "kind": "data_source",
+    "description": "Get commodity prices"
+  },
+  {
+    "name": "commodities_get_market_data",
+    "origin_name": "get_market_data",
+    "parameters": [
+      {"name": "commodity", "type": "str", "description": "Commodity type"}
+    ],
+    "kind": "data_source",
+    "description": "Get market data"
+  },
+  {
+    "name": "patents_search_patents",
+    "origin_name": "search_patents",
+    "parameters": [
+      {"name": "query", "type": "str", "description": "Patent search query"},
+      {"name": "country", "type": "str", "description": "Country filter"}
+    ],
+    "kind": "data_source",
+    "description": "Search for patents"
+  },
+  {
+    "name": "patents_get_patent_details",
+    "origin_name": "get_patent_details",
+    "parameters": [
+      {"name": "patent_id", "type": "str", "description": "Patent ID"}
+    ],
+    "kind": "data_source",
+    "description": "Get patent details"
+  },
+  {
+    "name": "scholar_search_papers",
+    "origin_name": "search_papers",
+    "parameters": [
+      {"name": "query", "type": "str", "description": "Paper search query"},
+      {"name": "year_start", "type": "int", "description": "Start year"},
+      {"name": "year_end", "type": "int", "description": "End year"}
+    ],
+    "kind": "data_source",
+    "description": "Search for academic papers"
+  },
+  {
+    "name": "scholar_get_citations",
+    "origin_name": "get_citations",
+    "parameters": [
+      {"name": "paper_id", "type": "str", "description": "Paper ID"}
+    ],
+    "kind": "data_source",
+    "description": "Get paper citations"
+  },
+  {
+    "name": "framework_control_teams",
+    "origin_name": "control_teams",
+    "parameters": [
+      {"name": "action", "type": "str", "description": "Control action"},
+      {"name": "team_ids", "type": "list", "description": "Team identifiers"},
+      {"name": "parameters", "type": "dict", "description": "Action parameters"}
+    ],
+    "kind": "framework",
+    "description": "Control all 78 framework teams"
+  },
+  {
+    "name": "framework_auto_scale",
+    "origin_name": "auto_scale_teams",
+    "parameters": [
+      {"name": "scale_action", "type": "str", "description": "Scale up/down"},
+      {"name": "criteria", "type": "dict", "description": "Scaling criteria"},
+      {"name": "target_teams", "type": "list", "description": "Teams to scale"}
+    ],
+    "kind": "framework",
+    "description": "Auto-scale framework teams"
+  },
+  {
+    "name": "framework_get_status",
+    "origin_name": "get_framework_status",
+    "parameters": [
+      {"name": "detailed", "type": "bool", "description": "Detailed status"},
+      {"name": "include_metrics", "type": "bool", "description": "Include metrics"}
+    ],
+    "kind": "framework",
+    "description": "Get framework operational status"
+  }
+]
