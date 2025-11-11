@@ -1,0 +1,343 @@
+# Playbook — Comunicación Dinámica entre Agentes (HAAS + MCP)
+
+**Autor:** GPT‑5 Thinking para AHFB
+**Fecha:** 08‑Nov‑2025 (America/Lima)
+**Ámbito:** Complemento exhaustivo para los planes HAAS + MCP con **mejores prácticas de comunicación dinámica** multi‑agente, **multi‑tenant**, auditable, segura y eficiente.
+
+---
+
+## 1) Objetivos y resultados esperados
+
+* **Dinamismo real:** enrutamiento que se adapta en tiempo real a dependencias, estados y severidades.
+* **Aislamiento y trazabilidad:** todo mensaje con `{tenant_id, project_id, plan_id, task_id}`; correlación, causalidad y replay.
+* **Ruido mínimo, foco máximo:** notificación dirigida (no broadcast), agregación y silenciamiento inteligente.
+* **Confiabilidad:** garantías de entrega configurables, idempotencia, reintentos con *jitter*, DLQ y *quarantine*.
+* **Seguridad y cumplimiento:** RLS extremo a extremo, scopes por tool, redacción de PII y firmas de mensajes.
+* **Operabilidad:** métricas, trazas distribuidas, SLO/SLA por canal y *runbooks* listos.
+
+---
+
+## 2) Principios rectores
+
+1. **Event‑driven + Mediador**: los agentes rara vez se comunican P2P; pasan por **NOTI** (hub) o por el **CTX** (estado derivado) para mantener auditabilidad.
+2. **Payload dual**: *Envelope* JSON (máquina, estable) + *Content* NL/JSON (cerebro LLM, flexible).
+3. **Least surprise**: vocabulario de **performativos** consistente (REQUEST, INFORM, PROPOSE, ACCEPT, REJECT, HALT, ERROR, ACK, HEARTBEAT).
+4. **Back‑pressure**: el emisor **adapta** su ritmo (tokens/quotas) según *feedback*; el receptor puede **NACK** con razones.
+5. **Causalidad visible**: correlación, *threading*, *Lamport/Vector clock* por conversación crítica.
+6. **Idempotencia primero**: toda acción ejecutable lleva `idempotency_key` y *dedup*.
+
+---
+
+## 3) Topología y canales
+
+```mermaid
+flowchart LR
+  subgraph Hub
+    NOTI[Notificaciones (Mediator)]
+    CTX[(Read Models / Locks / Dependencias)]
+  end
+  ORQ[Orquestador]
+  PLAN[Planificador]
+  DEV[Equipos DEV]
+  SUP[Soporte/Auto‑fix]
+  AUD[Auditor/CTX]
+  RES[Investigación]
+
+  ORQ--REQUEST/INFORM-->NOTI
+  PLAN--REQUEST/INFORM/HALT-->NOTI
+  SUP--ERROR/REPLAN-->NOTI
+  DEV--INFORM/REQUEST-->NOTI
+  NOTI--ruteo->DEV
+  NOTI--ruteo->PLAN
+  NOTI--ruteo->SUP
+  NOTI--ruteo->ORQ
+  NOTI--consulta dependencias-->CTX
+```
+
+**Clases de canales**
+
+* **Control** (alta prioridad): HALT, ERROR, REPLAN.
+* **Estado** (media): INFORM, ACK, HEARTBEAT.
+* **Trabajo** (normal): REQUEST/PROPOSE/ACCEPT/REJECT.
+* **Observabilidad**: METRIC, TRACE, AUDIT.
+
+---
+
+## 4) Diseño de mensajes (estándar)
+
+**Envelope (máquina):**
+
+```json
+{
+  "message_id": "uuid",
+  "conversation_id": "uuid",
+  "performative": "REQUEST|INFORM|HALT|ERROR|ACK|PROPOSE|ACCEPT|REJECT|HEARTBEAT",
+  "timestamp": "2025-11-08T08:12:03-05:00",
+  "tenant_id": "t-...",
+  "project_id": "p-...",
+  "plan_id": "pl-...",
+  "task_id": "T-...",
+  "sender_id": "team/agent",
+  "receiver_id": "team/agent|DYNAMIC",
+  "priority": "P0|P1|P2|P3",
+  "delivery": { "semantics": "at_least_once|at_most_once|exactly_once", "ttl_sec": 300 },
+  "idempotency_key": "uuid",
+  "trace": { "trace_id": "uuid", "span_id": "uuid", "parent_span_id": "uuid" },
+  "schema_version": "1.0",
+  "nl_summary": "Breve resumen humano/LLM"
+}
+```
+
+**Content (LLM + datos):**
+
+```json
+{
+  "goal": "...",
+  "context": { "links": [{"type":"artifact","ref":"artf-..."}], "deps": ["T-120"] },
+  "constraints": ["..."],
+  "attachments": [{"mime":"text/markdown","name":"artifact.md","sha256":"..."}],
+  "replan_scope": "task|sub_graph|full_plan",
+  "error": {"code":"E_DEPENDENCY_FAILED","stack":"..."}
+}
+```
+
+**Validación**: JSON Schema (draft‑07) para Envelope y Content; rechazo temprano (`422`) si falta campo crítico.
+
+---
+
+## 5) Enrutamiento **dinámico**
+
+1. **Por dependencias (predeterminado):** NOTI ejecuta CTE/consulta grafo para receptores descendientes/ancestros relevantes.
+2. **Por rol/capacidad:** si performativo = REQUEST con `capability:"python_writer"`, NOTI elige **líder de equipo** adecuado o pool de especialistas.
+3. **Por severidad y SLA:** P0 → líderes + Soporte; P2 → solo dueños de tareas.
+4. **Por políticas de silencio/ventanas:** silenciar *spammy alerts*, agrupar duplicados en ventana `Δt`.
+
+**Ejemplo SQL (descendientes afectados):**
+
+```sql
+WITH RECURSIVE affected(task_id) AS (
+  SELECT to_task FROM task_edges WHERE tenant_id=$1 AND project_id=$2 AND from_task=$3
+  UNION SELECT te.to_task FROM task_edges te JOIN affected a
+    ON te.tenant_id=$1 AND te.project_id=$2 AND te.from_task=a.task_id
+)
+SELECT owner_agent_id FROM tasks_read WHERE tenant_id=$1 AND project_id=$2
+  AND task_id IN (SELECT task_id FROM affected);
+```
+
+---
+
+## 6) Garantías de entrega y **idempotencia**
+
+* **Semánticas:**
+
+  * *At‑least‑once* (por defecto en P0/P1) con *dedup* por `idempotency_key`.
+  * *At‑most‑once* (telemetría de baja criticidad).
+  * *Exactly‑once* (simulada): *at‑least‑once + dedup transaccional*.
+* **Deduplicación (Postgres):**
+
+```sql
+CREATE TABLE msg_dedup (
+  tenant_id TEXT, message_id UUID, idempotency_key UUID,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  PRIMARY KEY (tenant_id, idempotency_key)
+);
+```
+
+* **Reintentos:** *exponential backoff + jitter*; `retry_after` en NACK.
+* **DLQ/Quarantine:** mensajes que exceden N reintentos o fallan validación → análisis Soporte.
+
+---
+
+## 7) Orden, causalidad y coherencia
+
+* **Per‑conversation FIFO**: cola por `conversation_id` o por `(tenant, plan, task)`.
+* **Causalidad lógica**: `lamport_clock` o `vector_clock` en `Envelope.meta` para series críticas.
+* **Idempotent handlers**: *handlers* puros sobre ES; *side‑effects* condicionados a dedup.
+
+---
+
+## 8) Control de flujo y **back‑pressure**
+
+* **Rate limits**: *token bucket* por `sender_id`/`tool`/`tenant`.
+* **Prioridades**: colas separadas por `priority`; *preemptive drain* de P0.
+* **Carga adaptativa**: NOTI ajusta ventana de agregación para eventos repetidos.
+* **Capacidad declarada**: agentes publican `HEARTBEAT{capacity:n}`; NOTI regula asignaciones.
+
+**Lua (Redis, token‑bucket simplificado):**
+
+```lua
+-- KEYS[1]=bucket, ARGV[1]=now, ARGV[2]=rate, ARGV[3]=capacity
+local tokens = redis.call('GET', KEYS[1]); if not tokens then tokens=ARGV[3] end
+-- refill
+local last = redis.call('GET', KEYS[1]..':ts'); if not last then last=ARGV[1] end
+local delta = math.max(0, ARGV[1]-last); tokens = math.min(ARGV[3], tokens + delta*ARGV[2])
+if tokens < 1 then return 0 end
+redis.call('SET', KEYS[1], tokens-1); redis.call('SET', KEYS[1]..':ts', ARGV[1]); return 1
+```
+
+---
+
+## 9) Gestión de errores y resiliencia
+
+* **Clasificación**: `E_SCHEMA`, `E_DEPENDENCY`, `E_TOOL_RATE`, `E_TIMEOUT`, `E_LOCK_DENIED`.
+* **Acciones**: retry, fallback, *circuit breaker*, `ReplanRequired`, HALT dirigido.
+* **Plantilla `incident.md`** con RCA y parche en sandbox; validación Soporte → cierre.
+
+---
+
+## 10) Conversaciones y estados
+
+* **FSM por conversación**: `INIT → IN_PROGRESS → WAITING_INPUT (humano/tool) → RESOLVED → ARCHIVED`.
+* **SLA temporales** por prioridad: P0 ≤ 1m ACK; P1 ≤ 5m; P2 ≤ 30m.
+* **Keep‑alive**: `HEARTBEAT` cada `N` segundos; *missed heartbeats* → degradación/redistribución.
+
+---
+
+## 11) Seguridad, privacidad y cumplimiento
+
+* **AuthN/Z**: JWT + scopes; verificación de *performative* permitidos por rol.
+* **RLS extremo a extremo**: todo mensaje con `tenant_id` obligatorio.
+* **Firmas**: `envelope_signature` HMAC/Ed25519 opcional; *replay protection*.
+* **PII/PHI**: redacción en `Content`; *data minimization*.
+* **mTLS** interno opcional; TLS 1.2+ externo.
+
+---
+
+## 12) MCP: invocación y respuestas
+
+* **InitializeSession** con `{tenant_id, project_id, role, profile_id}`.
+* **Tool policies**: *allow‑list* por profile; *quotas*; *rate limits*; *egress control*.
+* **Respuesta estructurada**: tool → `INFORM` con `attachments` (artefactos/JSON) + *hash*.
+* **Errores MCP**: mapear a `E_TOOL_RATE`, `E_TOOL_AUTH`, `E_TOOL_INTERNAL`.
+
+---
+
+## 13) Reconfiguración dinámica
+
+* **Suscripciones**: NOTI mantiene *routing tables* derivadas del grafo/lecturas; se recalculan tras `PlanUpdated`/`TaskReassigned`.
+* **Silenciamiento**: políticas por ventana/severidad/actor; levantar silencios ante P0.
+
+---
+
+## 14) Patrones de coordinación (comparativa)
+
+| Patrón         | Ventajas               | Riesgos                  | Uso recomendado                            |
+| -------------- | ---------------------- | ------------------------ | ------------------------------------------ |
+| Mediador (hub) | Auditabilidad, control | Punto único si no HA     | Core del sistema                           |
+| Blackboard     | Acoplamiento débil     | Confusión si sin esquema | CTX/artefactos `.md`                       |
+| Contract Net   | Asignación dinámica    | Complejiza auditoría     | En pools de especialistas con trazabilidad |
+| Direct P2P     | Rápido local           | Rompe gobernanza         | Evitar salvo sandbox local                 |
+
+---
+
+## 15) Observabilidad (trazas, métricas, logs)
+
+* **Trazas**: `trace_id/span_id` en Envelope; *baggage* `{tenant,project,plan,task}`.
+* **Métricas**: latencia por performativo, *error rate* por código, *fan‑out* por evento, *drop rate*.
+* **Logs**: *structured logging* con severidad, contexto, *sampling* en ruido.
+* **Tableros**: colas por prioridad, SLA ACK, locks retenidos, reintentos, DLQ.
+
+---
+
+## 16) Testing y simulación
+
+* **Contract tests** para Envelope/Content (JSON Schema).
+* **Fuzzing** de Content NL/JSON.
+* **Chaos**: caída de NOTI/CTX, latencia artificial, pérdida de mensajes.
+* **Replay**: *time‑travel* desde ES para reproducir/incidentes.
+* **Load**: fan‑out `1→N` y tormentas de eventos; validación de back‑pressure.
+
+---
+
+## 17) Anti‑patrones comunes
+
+* **Broadcast indiscriminado** → fatiga, pérdida de foco.
+* **Mensajes sin `tenant_id`/`task_id`** → fuga de contexto.
+* **Reintentos sin *jitter*** → sincronización de picos.
+* **Handlers no idempotentes** → duplicados peligrosos.
+* **P2P sin auditoría** → *ghost work*.
+
+---
+
+## 18) Playbooks (flujos críticos)
+
+### 18.1 Falla de dependencia
+
+1. DEV emite `ERROR E_DEPENDENCY_FAILED` (P0)
+2. NOTI consulta descendientes y envía `HALT` dirigido
+3. SUP crea `incident.md`, ejecuta RCA y propone parche
+4. Si falla → `ReplanRequired` → PLAN recalcula sub‑grafo
+5. NOTI informa a ORQ con resumen NL y enlaces a artefactos
+
+### 18.2 Cambio de alcance
+
+1. ORQ emite `REQUEST SCOPE_CHANGE`
+2. PLAN evalúa impacto (consulta de ancestros/descendientes)
+3. NOTI envía `PROPOSE` a líderes afectados
+4. `ACCEPT/REJECT` → actualización de plan + INFORM final
+
+### 18.3 Aprobación humana (human‑in‑the‑loop)
+
+1. DEV produce `artifact.md (status: needs_review)`
+2. NOTI dirige a ORQ/usuario `REQUEST APPROVAL`
+3. Decisión → `INFORM` a PLAN/DEV → continuar o re‑trabajar
+
+---
+
+## 19) Plantillas y esquemas
+
+**JSON Schema — Envelope (extracto)**
+
+```json
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "required": ["message_id","performative","timestamp","tenant_id","sender_id"],
+  "properties": {
+    "message_id": {"type":"string","format":"uuid"},
+    "performative": {"enum":["REQUEST","INFORM","PROPOSE","ACCEPT","REJECT","HALT","ERROR","ACK","HEARTBEAT"]},
+    "tenant_id": {"type":"string"},
+    "project_id": {"type":"string"},
+    "plan_id": {"type":"string"},
+    "task_id": {"type":"string"},
+    "idempotency_key": {"type":"string","format":"uuid"}
+  }
+}
+```
+
+**Policy YAML — silencios y agregación**
+
+```yaml
+silence:
+  - match: {performative: INFORM, source: DEV}
+    window: 60s
+    max_events: 10
+aggregate:
+  - match: {error_code: E_TOOL_RATE}
+    window: 120s
+    strategy: count_and_sample
+```
+
+---
+
+## 20) Checklists de puesta en marcha
+
+* [ ] Validadores de Envelope/Content (JSON Schema) activos en NOTI.
+* [ ] Deduplicación Postgres y *token bucket* Redis operativos.
+* [ ] Políticas de silencios/aggregación por severidad/canal.
+* [ ] RLS end‑to‑end y *tenancy guard* en Gateway/NOTI/CTX.
+* [ ] Trazas distribuidas con *trace_id/span_id*.
+* [ ] Runbooks publicados (`incident.md`, `rca.md`, `comm_matrix.md`).
+
+---
+
+## 21) Roadmap de implementación (4 hitos)
+
+1. **H1 — Fundamentos:** validadores, dedup, rate‑limit, prioridades, DLQ.
+2. **H2 — Routing avanzado:** dependencias + capacidades; políticas de silencio/agrupación.
+3. **H3 — Resiliencia:** circuit breakers, *quarantine*, replay ES, chaos.
+4. **H4 — Observabilidad & UX:** tableros SLA, trazas ricas, consolas de conversación.
+
+---
+
+> Este playbook se integra con tu **Organigrama y Equipos** y el **Plan Maestro** existentes. Puedo añadir **contratos gRPC/REST específicos** para NOTI, ejemplos de handlers idempotentes y *mocks* de carga para validar fan‑out y *back‑pressure* en tu VPS.
